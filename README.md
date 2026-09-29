@@ -1,0 +1,2 @@
+# portal-solicitacoes
+DESENVOLVIMENTO DE MINI-PROJETO FULL STACK
