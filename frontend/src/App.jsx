@@ -3,7 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 
 import ProtectedRoute from './components/ProtectedRoute';
-import Header from './components/Header';
+import ProtectedLayout from './components/ProtectedLayout';
 
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -19,13 +19,7 @@ export default function App() {
           <Route path="/login" element={<Login />} />
 
           <Route element={<ProtectedRoute />}>
-            <Route
-              element={
-                <>
-                  <Header />
-                </>
-              }
-            >
+            <Route element={<ProtectedLayout />}>
               <Route path="/dashboard" element={<Dashboard />} />
 
               <Route path="/requests" element={<Requests />} />
