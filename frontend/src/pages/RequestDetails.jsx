@@ -1,16 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+
 import requestService from '../services/request.service';
 
-const STATUS_LABELS = {
-  ABERTO: 'Aberto',
-  EM_ATENDIMENTO: 'Em atendimento',
-  CONCLUIDO: 'Concluído',
-};
+import StatusBadge from '../components/StatusBadge';
 
 const CATEGORY_LABELS = {
   TI: 'TI',
-  RH: 'RH',
+  RH: 'Recursos Humanos',
   COMPRAS: 'Compras',
   FINANCEIRO: 'Financeiro',
   INFRAESTRUTURA: 'Infraestrutura',
@@ -24,30 +21,19 @@ function formatDate(date) {
   return new Date(date).toLocaleString('pt-BR');
 }
 
-function getStatusClass(status) {
-  switch (status) {
-    case 'ABERTO':
-      return 'status-badge status-aberto';
-
-    case 'EM_ATENDIMENTO':
-      return 'status-badge status-em-atendimento';
-
-    case 'CONCLUIDO':
-      return 'status-badge status-concluido';
-
-    default:
-      return 'status-badge';
-  }
-}
-
 export default function RequestDetails() {
   const { id } = useParams();
+
   const navigate = useNavigate();
 
   const [request, setRequest] = useState(null);
+
   const [loading, setLoading] = useState(true);
+
   const [changingStatus, setChangingStatus] = useState(false);
+
   const [deleting, setDeleting] = useState(false);
+
   const [error, setError] = useState('');
 
   async function loadRequest() {
@@ -55,17 +41,16 @@ export default function RequestDetails() {
       setLoading(true);
       setError('');
 
-      const response = await requestService.getById(id);
+      const data = await requestService.getById(id);
 
-      setRequest(response);
+      setRequest(data);
     } catch (err) {
       console.error(err);
 
-      const message =
+      setError(
         err.response?.data?.message ||
-        'Não foi possível carregar a solicitação.';
-
-      setError(message);
+          'Não foi possível carregar a solicitação.',
+      );
     } finally {
       setLoading(false);
     }
@@ -82,8 +67,14 @@ export default function RequestDetails() {
       return;
     }
 
+    const labels = {
+      ABERTO: 'Aberto',
+      EM_ATENDIMENTO: 'Em atendimento',
+      CONCLUIDO: 'Concluído',
+    };
+
     const confirmed = window.confirm(
-      `Deseja alterar o status para "${STATUS_LABELS[newStatus]}"?`,
+      `Deseja alterar o status para "${labels[newStatus]}"?`,
     );
 
     if (!confirmed) {
@@ -94,25 +85,15 @@ export default function RequestDetails() {
       setChangingStatus(true);
       setError('');
 
-      const response = await requestService.updateStatus(id, newStatus);
+      await requestService.updateStatus(id, newStatus);
 
-      /*
-       * O backend pode retornar a solicitação atualizada
-       * ou apenas uma mensagem.
-       *
-       * Por isso recarregamos os dados após a alteração.
-       */
-      if (response) {
-        await loadRequest();
-      }
+      await loadRequest();
     } catch (err) {
       console.error(err);
 
-      const message =
-        err.response?.data?.message ||
-        'Não foi possível alterar o status da solicitação.';
-
-      setError(message);
+      setError(
+        err.response?.data?.message || 'Não foi possível alterar o status.',
+      );
     } finally {
       setChangingStatus(false);
     }
@@ -143,66 +124,51 @@ export default function RequestDetails() {
 
       await requestService.remove(id);
 
-      alert('Solicitação excluída com sucesso.');
-
       navigate('/requests');
     } catch (err) {
       console.error(err);
 
-      const message =
+      setError(
         err.response?.data?.message ||
-        'Não foi possível excluir a solicitação.';
+          'Não foi possível excluir a solicitação.',
+      );
 
-      setError(message);
-    } finally {
       setDeleting(false);
     }
   }
 
   if (loading) {
     return (
-      <div className="page-container">
+      <main className="page-container">
         <div className="loading">Carregando solicitação...</div>
-      </div>
+      </main>
     );
   }
 
-  if (error && !request) {
+  if (!request) {
     return (
-      <div className="page-container">
+      <main className="page-container">
         <div className="page-header">
-          <div>
-            <h1>Detalhes da solicitação</h1>
-          </div>
+          <h1>Detalhes da solicitação</h1>
 
           <Link to="/requests" className="btn btn-secondary">
             Voltar
           </Link>
         </div>
 
-        <div className="alert alert-error">{error}</div>
-      </div>
-    );
-  }
-
-  if (!request) {
-    return (
-      <div className="page-container">
-        <div className="alert alert-error">Solicitação não encontrada.</div>
-
-        <Link to="/requests" className="btn btn-secondary">
-          Voltar para solicitações
-        </Link>
-      </div>
+        <div className="alert alert-error">
+          {error || 'Solicitação não encontrada.'}
+        </div>
+      </main>
     );
   }
 
   const canEdit = request.status === 'ABERTO';
+
   const canDelete = request.status === 'ABERTO';
 
   return (
-    <div className="page-container">
-      {/* Cabeçalho */}
+    <main className="page-container">
       <div className="page-header">
         <div>
           <h1>Detalhes da solicitação</h1>
@@ -226,30 +192,24 @@ export default function RequestDetails() {
         </div>
       </div>
 
-      {/* Mensagem de erro */}
       {error && <div className="alert alert-error">{error}</div>}
 
-      {/* Informações principais */}
-      <div className="details-card">
+      <section className="details-card">
         <div className="details-card-header">
           <div>
             <h2>{request.title}</h2>
 
-            <span className={getStatusClass(request.status)}>
-              {STATUS_LABELS[request.status] || request.status}
-            </span>
+            <StatusBadge status={request.status} />
           </div>
         </div>
 
         <div className="details-grid">
-          {/* ID */}
           <div className="detail-item">
-            <span className="detail-label">ID</span>
+            <span className="detail-label">Código</span>
 
             <span className="detail-value">#{request.id}</span>
           </div>
 
-          {/* Categoria */}
           <div className="detail-item">
             <span className="detail-label">Categoria</span>
 
@@ -258,16 +218,14 @@ export default function RequestDetails() {
             </span>
           </div>
 
-          {/* Usuário */}
           <div className="detail-item">
             <span className="detail-label">Solicitante</span>
 
             <span className="detail-value">
-              {request.username || request.user_id || '-'}
+              {request.username || request.requester || request.user_id || '-'}
             </span>
           </div>
 
-          {/* Criado em */}
           <div className="detail-item">
             <span className="detail-label">Criado em</span>
 
@@ -276,9 +234,8 @@ export default function RequestDetails() {
             </span>
           </div>
 
-          {/* Atualizado em */}
           <div className="detail-item">
-            <span className="detail-label">Última atualização</span>
+            <span className="detail-label">Atualizado em</span>
 
             <span className="detail-value">
               {formatDate(request.updated_at)}
@@ -286,16 +243,14 @@ export default function RequestDetails() {
           </div>
         </div>
 
-        {/* Descrição */}
         <div className="description-section">
           <h3>Descrição</h3>
 
           <div className="description-content">{request.description}</div>
         </div>
-      </div>
+      </section>
 
-      {/* Status */}
-      <div className="details-card">
+      <section className="details-card">
         <div className="section-header">
           <div>
             <h2>Status</h2>
@@ -324,10 +279,9 @@ export default function RequestDetails() {
             <span className="loading-small">Atualizando...</span>
           )}
         </div>
-      </div>
+      </section>
 
-      {/* Ações */}
-      <div className="details-card actions-card">
+      <section className="details-card actions-card">
         <h2>Ações</h2>
 
         <div className="actions">
@@ -354,11 +308,11 @@ export default function RequestDetails() {
           {!canEdit && (
             <div className="info-message">
               Esta solicitação não pode mais ser editada ou excluída porque seu
-              status não é<strong> ABERTO</strong>.
+              status não é <strong>ABERTO</strong>.
             </div>
           )}
         </div>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 }
