@@ -1,177 +1,220 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
-import api from '../services/api';
+import RequestTable from '../components/RequestTable';
+
+import requestService from '../services/request.service';
+
+const INITIAL_FILTERS = {
+  title: '',
+  category: '',
+  status: '',
+  startDate: '',
+  endDate: '',
+};
 
 export default function Requests() {
   const [requests, setRequests] = useState([]);
 
-  const [filters, setFilters] = useState({
-    title: '',
-    category: '',
-    status: '',
-    startDate: '',
-    endDate: '',
-  });
+  const [filters, setFilters] = useState(INITIAL_FILTERS);
+
+  const [loading, setLoading] = useState(true);
+
+  const [error, setError] = useState('');
 
   async function loadRequests() {
-    const params = {};
+    try {
+      setLoading(true);
+      setError('');
 
-    if (filters.title) {
-      params.title = filters.title;
+      const params = {};
+
+      if (filters.title.trim()) {
+        params.title = filters.title.trim();
+      }
+
+      if (filters.category) {
+        params.category = filters.category;
+      }
+
+      if (filters.status) {
+        params.status = filters.status;
+      }
+
+      if (filters.startDate) {
+        params.startDate = filters.startDate;
+      }
+
+      if (filters.endDate) {
+        params.endDate = filters.endDate;
+      }
+
+      const data = await requestService.getAll(params);
+
+      setRequests(data);
+    } catch (err) {
+      console.error(err);
+
+      setError(
+        err.response?.data?.message ||
+          'Não foi possível carregar as solicitações.',
+      );
+    } finally {
+      setLoading(false);
     }
-
-    if (filters.category) {
-      params.category = filters.category;
-    }
-
-    if (filters.status) {
-      params.status = filters.status;
-    }
-
-    if (filters.startDate) {
-      params.startDate = filters.startDate;
-    }
-
-    if (filters.endDate) {
-      params.endDate = filters.endDate;
-    }
-
-    const response = await api.get('/requests', { params });
-
-    setRequests(response.data.data);
   }
 
   useEffect(() => {
     loadRequests();
   }, []);
 
-  return (
-    <main className="container">
-      <div className="page-header">
-        <h1>Solicitações</h1>
+  function handleFilterChange(event) {
+    const { name, value } = event.target;
 
-        <Link to="/requests/new" className="button">
+    setFilters((current) => ({
+      ...current,
+      [name]: value,
+    }));
+  }
+
+  function handleSubmit(event) {
+    event.preventDefault();
+
+    loadRequests();
+  }
+
+  function clearFilters() {
+    setFilters(INITIAL_FILTERS);
+
+    setTimeout(() => {
+      loadRequests();
+    }, 0);
+  }
+
+  return (
+    <main className="page-container">
+      <div className="page-header">
+        <div>
+          <h1>Solicitações</h1>
+
+          <p className="page-subtitle">
+            Consulte e acompanhe as solicitações internas.
+          </p>
+        </div>
+
+        <Link to="/requests/new" className="btn btn-primary">
           Nova solicitação
         </Link>
       </div>
 
-      <section className="filters">
-        <input
-          placeholder="Pesquisar título"
-          value={filters.title}
-          onChange={(e) =>
-            setFilters({
-              ...filters,
-              title: e.target.value,
-            })
-          }
-        />
+      <section className="filters-card">
+        <form className="filters" onSubmit={handleSubmit}>
+          <div className="filter-group">
+            <label htmlFor="title">Título</label>
 
-        <select
-          value={filters.category}
-          onChange={(e) =>
-            setFilters({
-              ...filters,
-              category: e.target.value,
-            })
-          }
-        >
-          <option value="">Todas as categorias</option>
+            <input
+              id="title"
+              name="title"
+              type="text"
+              placeholder="Pesquisar título"
+              value={filters.title}
+              onChange={handleFilterChange}
+            />
+          </div>
 
-          <option value="TI">TI</option>
+          <div className="filter-group">
+            <label htmlFor="category">Categoria</label>
 
-          <option value="RH">RH</option>
+            <select
+              id="category"
+              name="category"
+              value={filters.category}
+              onChange={handleFilterChange}
+            >
+              <option value="">Todas</option>
 
-          <option value="COMPRAS">Compras</option>
+              <option value="TI">TI</option>
 
-          <option value="FINANCEIRO">Financeiro</option>
+              <option value="RH">RH</option>
 
-          <option value="INFRAESTRUTURA">Infraestrutura</option>
-        </select>
+              <option value="COMPRAS">Compras</option>
 
-        <select
-          value={filters.status}
-          onChange={(e) =>
-            setFilters({
-              ...filters,
-              status: e.target.value,
-            })
-          }
-        >
-          <option value="">Todos os status</option>
+              <option value="FINANCEIRO">Financeiro</option>
 
-          <option value="ABERTO">Aberto</option>
+              <option value="INFRAESTRUTURA">Infraestrutura</option>
+            </select>
+          </div>
 
-          <option value="EM_ATENDIMENTO">Em atendimento</option>
+          <div className="filter-group">
+            <label htmlFor="status">Status</label>
 
-          <option value="CONCLUIDO">Concluído</option>
-        </select>
+            <select
+              id="status"
+              name="status"
+              value={filters.status}
+              onChange={handleFilterChange}
+            >
+              <option value="">Todos</option>
 
-        <input
-          type="date"
-          value={filters.startDate}
-          onChange={(e) =>
-            setFilters({
-              ...filters,
-              startDate: e.target.value,
-            })
-          }
-        />
+              <option value="ABERTO">Aberto</option>
 
-        <input
-          type="date"
-          value={filters.endDate}
-          onChange={(e) =>
-            setFilters({
-              ...filters,
-              endDate: e.target.value,
-            })
-          }
-        />
+              <option value="EM_ATENDIMENTO">Em atendimento</option>
 
-        <button onClick={loadRequests}>Filtrar</button>
+              <option value="CONCLUIDO">Concluído</option>
+            </select>
+          </div>
+
+          <div className="filter-group">
+            <label htmlFor="startDate">Data inicial</label>
+
+            <input
+              id="startDate"
+              name="startDate"
+              type="date"
+              value={filters.startDate}
+              onChange={handleFilterChange}
+            />
+          </div>
+
+          <div className="filter-group">
+            <label htmlFor="endDate">Data final</label>
+
+            <input
+              id="endDate"
+              name="endDate"
+              type="date"
+              value={filters.endDate}
+              onChange={handleFilterChange}
+            />
+          </div>
+
+          <div className="filter-actions">
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={loading}
+            >
+              {loading ? 'Consultando...' : 'Filtrar'}
+            </button>
+
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={clearFilters}
+            >
+              Limpar
+            </button>
+          </div>
+        </form>
       </section>
 
-      <section className="table-wrapper">
-        <table>
-          <thead>
-            <tr>
-              <th>Código</th>
-              <th>Título</th>
-              <th>Categoria</th>
-              <th>Solicitante</th>
-              <th>Data</th>
-              <th>Status</th>
-              <th>Ações</th>
-            </tr>
-          </thead>
+      {error && <div className="alert alert-error">{error}</div>}
 
-          <tbody>
-            {requests.map((request) => (
-              <tr key={request.id}>
-                <td>#{request.id}</td>
-
-                <td>{request.title}</td>
-
-                <td>{request.category}</td>
-
-                <td>{request.requester}</td>
-
-                <td>
-                  {new Date(request.created_at).toLocaleDateString('pt-BR')}
-                </td>
-
-                <td>{request.status}</td>
-
-                <td>
-                  <Link to={`/requests/${request.id}`}>Detalhes</Link>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
+      {loading ? (
+        <div className="loading">Carregando solicitações...</div>
+      ) : (
+        <RequestTable requests={requests} />
+      )}
     </main>
   );
 }
