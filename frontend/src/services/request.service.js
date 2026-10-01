@@ -6,47 +6,37 @@ const requestService = {
       params,
     });
 
-    return response.data;
+    return response.data.data;
   },
 
   async getById(id) {
     const response = await api.get(`/requests/${id}`);
 
-    return response.data;
+    return response.data.data;
   },
 
   async create(data) {
     const response = await api.post('/requests', data);
 
-    return response.data;
+    return response.data.data;
   },
 
   async update(id, data) {
-    const response = await api.put(
-      `/requests/${id}`,
-      data
-    );
+    const response = await api.put(`/requests/${id}`, data);
 
-    return response.data;
+    return response.data.data;
   },
 
   async remove(id) {
-    const response = await api.delete(
-      `/requests/${id}`
-    );
-
-    return response.data;
+    await api.delete(`/requests/${id}`);
   },
 
   async updateStatus(id, status) {
-    const response = await api.patch(
-      `/requests/${id}/status`,
-      {
-        status,
-      }
-    );
+    const response = await api.patch(`/requests/${id}/status`, {
+      status,
+    });
 
-    return response.data;
+    return response.data.data;
   },
 };
 
