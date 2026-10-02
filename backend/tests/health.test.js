@@ -1,28 +1,15 @@
-require("dotenv").config();
+require('dotenv').config();
 
-const request = require("supertest");
+const request = require('supertest');
 
-const app = require("../src/app");
+const app = require('../src/app');
 
-describe(
-  "Health Check",
-  () => {
-    test(
-      "deve retornar API funcionando",
-      async () => {
+describe('Health Check', () => {
+  test('deve retornar API funcionando', async () => {
+    const response = await request(app).get('/api/health');
 
-        const response =
-          await request(app)
-            .get("/api/health");
+    expect(response.statusCode).toBe(200);
 
-        expect(
-          response.statusCode
-        ).toBe(200);
-
-        expect(
-          response.body.success
-        ).toBe(true);
-      }
-    );
-  }
-);
+    expect(response.body.success).toBe(true);
+  });
+});
